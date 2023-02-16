@@ -1,0 +1,147 @@
+#! /bin/python
+import argparse
+import os
+import time
+import atexit
+import math
+from colorama import Style, Back, Fore, init
+init()
+os.system('setterm -cursor off')
+
+
+def show_curs():
+	print(Style.RESET_ALL, end='')
+	print('\nStop timer')
+	os.system('setterm -cursor on')
+
+
+atexit.register(show_curs)
+
+
+class StyleHandler():
+	def reset_style(self):
+		print(Style.RESET_ALL, end='')
+
+	def set_alarm_style(self):
+		print(f'{Back.RED}{Fore.WHITE}{Style.BRIGHT}', end='')
+
+	def set_invert_style(self):
+		print(f'{Back.WHITE}{Fore.BLACK}{Style.BRIGHT}', end='')
+
+	def set_normal_style(self):
+		print(f'{Back.BLACK}{Fore.WHITE}{Style.BRIGHT}', end='')
+
+
+class PrintHandler():
+	ALARM_MESSAGE = ('ALARM ' * math.ceil(os.get_terminal_size().columns / 6))[:os.get_terminal_size().columns]
+
+	def __init__(self):
+		self.styleHandler = StyleHandler()
+
+	def print_normal_msg(self, msg):
+		self.styleHandler.set_normal_style()
+		print(msg, end='')
+
+	def print_invert_msg(self, msg):
+		self.styleHandler.set_invert_style()
+		print(msg, end='')
+
+	def print_alarm_msg(self, msg):
+		self.styleHandler.set_alarm_style()
+		print(msg, end='')
+
+	def print_blink_msg(self, msg, num):
+		if num % 2 == 0:
+			self.print_normal_msg(msg)
+		else:
+			if num > 10:
+				self.print_invert_msg(msg)
+			else:
+				self.print_alarm_msg(msg)
+
+	def printAlarm(self):
+		i = 0
+		while True:
+			if i % 10 == 0:
+				self.styleHandler.set_invert_style()
+				print(self.ALARM_MESSAGE)
+			else:
+				self.styleHandler.set_alarm_style()
+				print(self.ALARM_MESSAGE)
+			time.sleep(0.05)
+			i += 1
+					
+
+
+
+
+
+class TotalTime():
+	total_raw_time = 0
+
+	def __init__(self, total_seconds):
+		self.total_raw_time = total_seconds
+
+	def set_raw_time(self, val):
+		self.total_raw_time = val
+
+	def get_raw_time(self):
+		return self.total_raw_time
+
+	def get_separated_time(self):
+		seconds = self.get_raw_time()
+
+		h = seconds // 3600
+		m = (seconds % 3600) // 60
+		s = (seconds % 3600) % 60
+
+		return h, m, s
+
+	def decrement_time(self):
+		if self.get_raw_time() > 0:
+			self.total_raw_time -= 1
+
+	def can_decrement(self):
+		return True if self.get_raw_time() > 0 else False
+
+
+class Timer():
+	def __init__(self, total_seconds):
+		self.total_time = TotalTime(total_seconds)
+		self.printHandler = PrintHandler()
+
+	def start_timer(self):
+		try:
+			while self.total_time.can_decrement():
+
+				msg = '>{:02}:{:02}:{:02}\r'.format(*self.total_time.get_separated_time())
+				self.printHandler.print_blink_msg(msg, self.total_time.get_raw_time())
+
+				time.sleep(1)
+				self.total_time.decrement_time()
+
+
+			self.printHandler.printAlarm()
+		except KeyboardInterrupt:
+			exit()
+
+
+
+
+
+class ParseHandler():
+	parser = argparse.ArgumentParser()
+	
+	def __init__(self):
+		self.parser.add_argument('-H', type=int, help='total time in hours', default=0)
+		self.parser.add_argument('-m', type=int, help='total time in minutes', default=0)
+		self.parser.add_argument('-s', type=int, help='total time in seconds', default=0)
+
+		args = self.parser.parse_args()
+
+		if args.H or args.m or args.s:
+			timer = Timer((args.H * 60 * 60) + (args.m * 60) + args.s)
+			timer.start_timer()
+
+
+parseHandler = ParseHandler()
