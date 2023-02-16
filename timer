@@ -6,13 +6,13 @@ import atexit
 import math
 from colorama import Style, Back, Fore, init
 init()
-os.system('setterm -cursor off')
+os.system('setterm -cursor off') # turn off terminal cursor
 
 
 def show_curs():
-	print(Style.RESET_ALL, end='')
+	print(Style.RESET_ALL, end='') # reset all styles before exit
 	print('\nStop timer')
-	os.system('setterm -cursor on')
+	os.system('setterm -cursor on') # turn on terminal cursor
 
 
 atexit.register(show_curs)
