@@ -11,7 +11,7 @@ os.system('setterm -cursor off') # turn off terminal cursor
 
 def show_curs():
 	print(Style.RESET_ALL, end='') # reset all styles before exit
-	print('\nStop timer')
+	print('\nExit')
 	os.system('setterm -cursor on') # turn on terminal cursor
 
 
@@ -50,7 +50,7 @@ class PrintHandler():
 		self.styleHandler.set_alarm_style()
 		print(msg, end='')
 
-	def print_blink_msg(self, msg, num):
+	def print_timer_blink_msg(self, msg, num):
 		if num % 2 == 0:
 			self.print_normal_msg(msg)
 		else:
@@ -58,6 +58,12 @@ class PrintHandler():
 				self.print_invert_msg(msg)
 			else:
 				self.print_alarm_msg(msg)
+
+	def print_regular_blink_msg(self, msg, num):
+		if num % 2 == 0:
+			self.print_normal_msg(msg)
+		else:
+			self.print_invert_msg(msg)
 
 	def printAlarm(self):
 		i = 0
@@ -70,23 +76,44 @@ class PrintHandler():
 				print(self.ALARM_MESSAGE)
 			time.sleep(0.05)
 			i += 1
-					
+				
+
+class StopWatchTime():
+	counted_time = 0
+
+	def __inti__(self):
+		self.set_stopwatch_time(0)
+
+	def set_stopwatch_time(self, val):
+		self.counted_time = val
+
+	def get_stopwatch_time(self):
+		return self.counted_time
+
+	def get_separated_time(self):
+		seconds = self.get_stopwatch_time()
+
+		h = seconds // 3600
+		m = (seconds % 3600) // 60
+		s = (seconds % 3600) % 60
+
+		return h, m, s
+
+	def increment_time(self):
+		self.counted_time += 1
 
 
-
-
-
-class TotalTime():
-	total_raw_time = 0
+class TimerTime():
+	left_raw_time = 0
 
 	def __init__(self, total_seconds):
-		self.total_raw_time = total_seconds
+		self.set_raw_time(total_seconds)
 
 	def set_raw_time(self, val):
-		self.total_raw_time = val
+		self.left_raw_time = val
 
 	def get_raw_time(self):
-		return self.total_raw_time
+		return self.left_raw_time
 
 	def get_separated_time(self):
 		seconds = self.get_raw_time()
@@ -99,7 +126,7 @@ class TotalTime():
 
 	def decrement_time(self):
 		if self.get_raw_time() > 0:
-			self.total_raw_time -= 1
+			self.left_raw_time -= 1
 
 	def can_decrement(self):
 		return True if self.get_raw_time() > 0 else False
@@ -107,18 +134,18 @@ class TotalTime():
 
 class Timer():
 	def __init__(self, total_seconds):
-		self.total_time = TotalTime(total_seconds)
+		self.timer_time = TimerTime(total_seconds)
 		self.printHandler = PrintHandler()
 
 	def start_timer(self):
 		try:
-			while self.total_time.can_decrement():
+			while self.timer_time.can_decrement():
 
-				msg = '>{:02}:{:02}:{:02}\r'.format(*self.total_time.get_separated_time())
-				self.printHandler.print_blink_msg(msg, self.total_time.get_raw_time())
+				msg = '>{:02}:{:02}:{:02}\r'.format(*self.timer_time.get_separated_time())
+				self.printHandler.print_timer_blink_msg(msg, self.timer_time.get_raw_time())
 
 				time.sleep(1)
-				self.total_time.decrement_time()
+				self.timer_time.decrement_time()
 
 
 			self.printHandler.printAlarm()
@@ -126,22 +153,46 @@ class Timer():
 			exit()
 
 
+class StopWatch():
 
+	def __init__(self):
+		self.stopwatch_time = StopWatchTime()
+		self.printHandler = PrintHandler()
+
+	def start_count(self):
+		try:
+			while True:
+				msg = '>{:02}:{:02}:{:02}\r'.format(*self.stopwatch_time.get_separated_time())
+				self.printHandler.print_regular_blink_msg(msg, self.stopwatch_time.get_stopwatch_time())
+
+				time.sleep(1)
+				self.stopwatch_time.increment_time()
+			
+		except KeyboardInterrupt:
+			exit()
 
 
 class ParseHandler():
 	parser = argparse.ArgumentParser()
 	
 	def __init__(self):
-		self.parser.add_argument('-H', type=int, help='total time in hours', default=0)
-		self.parser.add_argument('-m', type=int, help='total time in minutes', default=0)
-		self.parser.add_argument('-s', type=int, help='total time in seconds', default=0)
+		self.parser.add_argument(
+			'-H', type=int, help='total time in hours', default=0)
+		self.parser.add_argument(
+			'-m', type=int, help='total time in minutes', default=0)
+		self.parser.add_argument(
+			'-s', type=int, help='total time in seconds', default=0)
+		self.parser.add_argument(
+			'-sw', help='start stopwatch', action='store_true')
 
 		args = self.parser.parse_args()
 
 		if args.H or args.m or args.s:
 			timer = Timer((args.H * 60 * 60) + (args.m * 60) + args.s)
 			timer.start_timer()
+		elif args.sw:
+			stopWatch = StopWatch()
+			stopWatch.start_count()
 
 
 parseHandler = ParseHandler()
