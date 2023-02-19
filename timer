@@ -140,7 +140,6 @@ class Timer():
 	def start_timer(self):
 		try:
 			while self.timer_time.can_decrement():
-
 				msg = '>{:02}:{:02}:{:02}\r'.format(*self.timer_time.get_separated_time())
 				self.printHandler.print_timer_blink_msg(msg, self.timer_time.get_raw_time())
 
@@ -164,7 +163,7 @@ class StopWatch():
 			while True:
 				msg = '>{:02}:{:02}:{:02}\r'.format(*self.stopwatch_time.get_separated_time())
 				self.printHandler.print_regular_blink_msg(msg, self.stopwatch_time.get_stopwatch_time())
-
+                
 				time.sleep(1)
 				self.stopwatch_time.increment_time()
 			
@@ -175,7 +174,7 @@ class StopWatch():
 class ParseHandler():
 	parser = argparse.ArgumentParser()
 	
-	def __init__(self):
+	def start_parsing(self):
 		self.parser.add_argument(
 			'-H', type=int, help='total time in hours', default=0)
 		self.parser.add_argument(
@@ -196,3 +195,4 @@ class ParseHandler():
 
 
 parseHandler = ParseHandler()
+parseHandler.start_parsing()
