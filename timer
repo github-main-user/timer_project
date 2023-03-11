@@ -79,7 +79,7 @@ class PrintHandler():
             else:
                 self.styleHandler.set_alarm_style()
                 print(self.alarm_message)
-            time.sleep(0.05)
+            time.sleep(0.03)
             i += 1
 
 
