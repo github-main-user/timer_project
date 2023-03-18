@@ -35,18 +35,18 @@ class StyleHandler():
 
 class PrintHandler():
     def __init__(self):
-        self.styleHandler = StyleHandler()
+        self._styleHandler = StyleHandler()
 
     def print_normal_msg(self, msg):
-        self.styleHandler.set_normal_style()
+        self._styleHandler.set_normal_style()
         print(msg, end='')
 
     def print_invert_msg(self, msg):
-        self.styleHandler.set_invert_style()
+        self._styleHandler.set_invert_style()
         print(msg, end='')
 
     def print_alarm_msg(self, msg):
-        self.styleHandler.set_alarm_style()
+        self._styleHandler.set_alarm_style()
         print(msg, end='')
 
     def print_timer_blink_msg(self, msg, num):
@@ -64,39 +64,37 @@ class PrintHandler():
         else:
             self.print_invert_msg(msg)
 
-    def create_alarm_message(self):
-        self.alarm_message = ('ALARM ' * math.ceil(os.get_terminal_size().columns / 6)
-                     )[:os.get_terminal_size().columns]
-
+    def _create_alarm_message(self):
+        self._alarm_message = ('ALARM ' * math.ceil(os.get_terminal_size().columns / 6)
+                               )[:os.get_terminal_size().columns]
 
     def begin_alarm(self):
         i = 0
-        self.create_alarm_message()
+        self._create_alarm_message()
         while True:
             if i % 10 == 0:
-                self.styleHandler.set_invert_style()
-                print(self.alarm_message)
+                self._styleHandler.set_invert_style()
+                print(self._alarm_message)
             else:
-                self.styleHandler.set_alarm_style()
-                print(self.alarm_message)
+                self._styleHandler.set_alarm_style()
+                print(self._alarm_message)
             time.sleep(0.03)
             i += 1
 
 
 class StopWatchTime():
-    counted_time = 0
 
-    def __inti__(self):
-        self.set_stopwatch_time(0)
+    def __init__(self):
+        self.set__stopwatch_time(0)
 
-    def set_stopwatch_time(self, val):
-        self.counted_time = val
+    def set__stopwatch_time(self, val):
+        self._counted_time = val
 
-    def get_stopwatch_time(self):
-        return self.counted_time
+    def get__stopwatch_time(self):
+        return self._counted_time
 
     def get_separated_time(self):
-        seconds = self.get_stopwatch_time()
+        seconds = self.get__stopwatch_time()
 
         h = seconds // 3600
         m = (seconds % 3600) // 60
@@ -105,20 +103,20 @@ class StopWatchTime():
         return h, m, s
 
     def increment_time(self):
-        self.counted_time += 1
+        self._counted_time += 1
 
 
 class TimerTime():
-    left_raw_time = 0
 
     def __init__(self, total_seconds):
+        self._left_raw_time = 0
         self.set_raw_time(total_seconds)
 
     def set_raw_time(self, val):
-        self.left_raw_time = val
+        self._left_raw_time = val
 
     def get_raw_time(self):
-        return self.left_raw_time
+        return self._left_raw_time
 
     def get_separated_time(self):
         seconds = self.get_raw_time()
@@ -131,7 +129,7 @@ class TimerTime():
 
     def decrement_time(self):
         if self.get_raw_time() > 0:
-            self.left_raw_time -= 1
+            self._left_raw_time -= 1
 
     def can_decrement(self):
         return True if self.get_raw_time() > 0 else False
@@ -139,21 +137,21 @@ class TimerTime():
 
 class Timer():
     def __init__(self, total_seconds):
-        self.timer_time = TimerTime(total_seconds)
-        self.printHandler = PrintHandler()
+        self._timer_time = TimerTime(total_seconds)
+        self._printHandler = PrintHandler()
 
     def start_timer(self):
         try:
-            while self.timer_time.can_decrement():
+            while self._timer_time.can_decrement():
                 msg = '>{:02}:{:02}:{:02}\r'.format(
-                    *self.timer_time.get_separated_time())
-                self.printHandler.print_timer_blink_msg(
-                    msg, self.timer_time.get_raw_time())
+                    *self._timer_time.get_separated_time())
+                self._printHandler.print_timer_blink_msg(
+                    msg, self._timer_time.get_raw_time())
 
                 time.sleep(1)
-                self.timer_time.decrement_time()
+                self._timer_time.decrement_time()
 
-            self.printHandler.begin_alarm()
+            self._printHandler.begin_alarm()
         except KeyboardInterrupt:
             exit()
 
@@ -161,38 +159,40 @@ class Timer():
 class StopWatch():
 
     def __init__(self):
-        self.stopwatch_time = StopWatchTime()
-        self.printHandler = PrintHandler()
+        self._stopwatch_time = StopWatchTime()
+        self._printHandler = PrintHandler()
 
     def start_count(self):
         try:
             while True:
                 msg = '>{:02}:{:02}:{:02}\r'.format(
-                    *self.stopwatch_time.get_separated_time())
-                self.printHandler.print_regular_blink_msg(
-                    msg, self.stopwatch_time.get_stopwatch_time())
+                    *self._stopwatch_time.get_separated_time())
+                self._printHandler.print_regular_blink_msg(
+                    msg, self._stopwatch_time.get__stopwatch_time())
 
                 time.sleep(1)
-                self.stopwatch_time.increment_time()
+                self._stopwatch_time.increment_time()
 
         except KeyboardInterrupt:
             exit()
 
 
 class ParseHandler():
-    parser = argparse.ArgumentParser()
+
+    def __init__(self):
+        self._parser = argparse.ArgumentParser()
 
     def start_parsing(self):
-        self.parser.add_argument(
+        self._parser.add_argument(
             '-H', type=int, help='total time in hours', default=0)
-        self.parser.add_argument(
+        self._parser.add_argument(
             '-m', type=int, help='total time in minutes', default=0)
-        self.parser.add_argument(
+        self._parser.add_argument(
             '-s', type=int, help='total time in seconds', default=0)
-        self.parser.add_argument(
+        self._parser.add_argument(
             '-sw', help='start stopwatch', action='store_true')
 
-        args = self.parser.parse_args()
+        args = self._parser.parse_args()
 
         if args.H or args.m or args.s:
             timer = Timer((args.H * 60 * 60) + (args.m * 60) + args.s)
