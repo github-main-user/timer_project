@@ -5,6 +5,7 @@ import time
 import atexit
 import math
 from colorama import Style, Back, Fore, init
+from abc import ABC, abstractmethod
 init()
 os.system('setterm -cursor off')  # turn off terminal cursor
 
@@ -18,83 +19,61 @@ def show_curs():
 atexit.register(show_curs)
 
 
-class StyleHandler():
-    def reset_style(self):
-        print(Style.RESET_ALL, end='')
-
-    def set_alarm_style(self):
-        print(f'{Back.RED}{Fore.WHITE}{Style.BRIGHT}', end='')
-
-    def set_invert_style(self):
-        print(f'{Back.WHITE}{Fore.BLACK}{Style.BRIGHT}', end='')
-
-    def set_normal_style(self):
-        self.reset_style()
-        print(f'{Style.BRIGHT}', end='')
+class Styles:
+    ALARM = f'{Back.RED}{Fore.WHITE}{Style.BRIGHT}'
+    INVERT = f'{Back.WHITE}{Fore.BLACK}{Style.BRIGHT}'
+    NORMAL = f'{Style.BRIGHT}'
 
 
-class PrintHandler():
-    def __init__(self):
-        self._styleHandler = StyleHandler()
+class PrintHandler:
+    @staticmethod
+    def print(msg, style, end=''):
+        print(style + msg + Style.RESET_ALL, end=end)
 
-    def print_normal_msg(self, msg):
-        self._styleHandler.set_normal_style()
-        print(msg, end='')
-
-    def print_invert_msg(self, msg):
-        self._styleHandler.set_invert_style()
-        print(msg, end='')
-
-    def print_alarm_msg(self, msg):
-        self._styleHandler.set_alarm_style()
-        print(msg, end='')
-
-    def print_timer_blink_msg(self, msg, num):
-        if num % 2 == 0:
-            self.print_normal_msg(msg)
+    @classmethod
+    def print_timer_blink_msg(cls, msg, secs):
+        if secs % 2 == 0:
+            cls.print(msg, Styles.NORMAL)
         else:
-            if num > 10:
-                self.print_invert_msg(msg)
+            if secs > 10:
+                cls.print(msg, Styles.INVERT)
             else:
-                self.print_alarm_msg(msg)
+                cls.print(msg, Styles.ALARM)
 
-    def print_regular_blink_msg(self, msg, num):
-        if num % 2 == 0:
-            self.print_normal_msg(msg)
+    @classmethod
+    def print_regular_blink_msg(cls, msg, secs):
+        if secs % 2 == 0:
+            cls.print(msg, Styles.NORMAL)
         else:
-            self.print_invert_msg(msg)
+            cls.print(msg, Styles.INVERT)
 
-    def _create_alarm_message(self):
-        self._alarm_message = ('ALARM ' * math.ceil(os.get_terminal_size().columns / 6)
-                               )[:os.get_terminal_size().columns]
 
-    def begin_alarm(self):
+class Alarmer:
+    def _get_alarm_message():
+        COLS = os.get_terminal_size().columns
+        LINES = os.get_terminal_size().lines
+        return ('ALARM ' * math.ceil(COLS / 6))[:COLS]
+
+    @classmethod
+    def begin_alarm(cls):
         i = 0
-        self._create_alarm_message()
+        alarm_msg = cls._get_alarm_message()
         while True:
             if i % 10 == 0:
-                self._styleHandler.set_invert_style()
-                print(self._alarm_message)
+                PrintHandler.print(alarm_msg, Styles.INVERT, end='\n')
             else:
-                self._styleHandler.set_alarm_style()
-                print(self._alarm_message)
+                PrintHandler.print(alarm_msg, Styles.ALARM, end='\n')
+
             time.sleep(0.03)
             i += 1
 
 
-class StopWatchTime():
-
-    def __init__(self):
-        self.set__stopwatch_time(0)
-
-    def set__stopwatch_time(self, val):
-        self._counted_time = val
-
-    def get__stopwatch_time(self):
-        return self._counted_time
+class Time(ABC):
+    def __init__(self, seconds):
+        self._seconds = seconds
 
     def get_separated_time(self):
-        seconds = self.get__stopwatch_time()
+        seconds = self._seconds
 
         h = seconds // 3600
         m = (seconds % 3600) // 60
@@ -102,76 +81,56 @@ class StopWatchTime():
 
         return h, m, s
 
-    def increment_time(self):
-        self._counted_time += 1
+    def __index__(self):
+        return self._seconds
+
+    def __repr__(self):
+        h, m, s = self.get_separated_time()
+        return f'>{h:02}:{m:02}:{s:02}\r'
+
+    @abstractmethod
+    def move_time(self):
+        pass
 
 
-class TimerTime():
+class StopWatchTime(Time):
+    def move_time(self):
+        self._seconds += 1
 
-    def __init__(self, total_seconds):
-        self._left_raw_time = 0
-        self.set_raw_time(total_seconds)
 
-    def set_raw_time(self, val):
-        self._left_raw_time = val
-
-    def get_raw_time(self):
-        return self._left_raw_time
-
-    def get_separated_time(self):
-        seconds = self.get_raw_time()
-
-        h = seconds // 3600
-        m = (seconds % 3600) // 60
-        s = (seconds % 3600) % 60
-
-        return h, m, s
-
-    def decrement_time(self):
-        if self.get_raw_time() > 0:
-            self._left_raw_time -= 1
-
-    def can_decrement(self):
-        return True if self.get_raw_time() > 0 else False
+class TimerTime(Time):
+    def move_time(self):
+        self._seconds -= 1
 
 
 class Timer():
-    def __init__(self, total_seconds):
-        self._timer_time = TimerTime(total_seconds)
-        self._printHandler = PrintHandler()
+    def __init__(self, seconds):
+        self._time = TimerTime(seconds)
 
     def start_timer(self):
         try:
-            while self._timer_time.can_decrement():
-                msg = '>{:02}:{:02}:{:02}\r'.format(
-                    *self._timer_time.get_separated_time())
-                self._printHandler.print_timer_blink_msg(
-                    msg, self._timer_time.get_raw_time())
+            while int(self._time) >= 0:
+                PrintHandler.print_timer_blink_msg(str(self._time), int(self._time))
 
                 time.sleep(1)
-                self._timer_time.decrement_time()
+                self._time.move_time()
 
-            self._printHandler.begin_alarm()
+            Alarmer.begin_alarm()
         except KeyboardInterrupt:
             exit()
 
 
 class StopWatch():
-
     def __init__(self):
-        self._stopwatch_time = StopWatchTime()
-        self._printHandler = PrintHandler()
+        self._time = StopWatchTime(0)
 
     def start_count(self):
         try:
             while True:
-                msg = '>{:02}:{:02}:{:02}\r'.format(
-                    *self._stopwatch_time.get_separated_time())
-                self._printHandler.print_regular_blink_msg(
-                    msg, self._stopwatch_time.get__stopwatch_time())
+                PrintHandler.print_regular_blink_msg(str(self._time), int(self._time))
 
                 time.sleep(1)
-                self._stopwatch_time.increment_time()
+                self._time.move_time()
 
         except KeyboardInterrupt:
             exit()
